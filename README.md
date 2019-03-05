@@ -16,7 +16,7 @@ tracer library for yii2, compatible with jaeger.
 
 #### 2.1 `config/web.php`
 
-"""
+```
 $config = [
     'id' => '<APP NAME>'
     ...
@@ -61,11 +61,11 @@ $config = [
         ...
     ],
 ];
-"""
+```
 
 #### 2.2 `config/console.php`
 
-"""
+```
 $config = [
     'id' => '<APP NAME>'
     ...
@@ -103,7 +103,7 @@ $config = [
         ...
     ],
 ];
-"""
+```
 
 ### 3. Trace & Log
 
