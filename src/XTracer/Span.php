@@ -77,15 +77,15 @@ class Span
 
     public function httpSpan($method, $url, $isCaller = false)
     {
-        $this->type = 'http';
-
-        $baseUrl = preg_replace('/\?.*$/', '', $url);
+        $url = Util::safeUrl($url);
+        $fields = parse_url($url);
+        $path = $fields['path'];
 
         if (is_null($this->info['operationName'])) {
             if ($isCaller) {
-                $this->info['operationName'] = 'HTTP ' . $method . ': ' . $baseUrl;
+                $this->info['operationName'] = 'HTTP ' . $method . ': ' . $path;
             } else { #receiver
-                $this->info['operationName'] = 'HTTP ' . $method . ' ' . $baseUrl;
+                $this->info['operationName'] = 'HTTP ' . $method . ' ' . $path;
             }
         }
 
@@ -93,19 +93,17 @@ class Span
         $this->addTag('http.url', 'string', $url);
 
         $this->info['logs'] = [
-            [
-                "timestamp" => $this->info['startTimeMillis'],
-                "fields" => [
-                    [
-                        "key"   => "http.method",
-                        "type"  => "string",
-                        "value" => $method,
-                    ],
-                    [
-                        "key"   => "http.url",
-                        "type"  => "string",
-                        "value" => $url,
-                    ],
+            "timestamp" => $this->info['startTimeMillis'],
+            "fields" => [
+                [
+                    "key"   => "http.method",
+                    "type"  => "string",
+                    "value" => $method,
+                ],
+                [
+                    "key"   => "http.url",
+                    "type"  => "string",
+                    "value" => $url,
                 ],
             ],
         ];
@@ -122,19 +120,17 @@ class Span
         $this->addTag('cmd.params', 'string', json_encode($params));
 
         $this->info['logs'] = [
-            [
-                "timestamp" => $this->info['startTimeMillis'],
-                "fields" => [
-                    [
-                        "key"   => "cmd.controller",
-                        "type"  => "string",
-                        "value" => $controller,
-                    ],
-                    [
-                        "key"   => "cmd.action",
-                        "type"  => "string",
-                        "value" => $action,
-                    ],
+            "timestamp" => $this->info['startTimeMillis'],
+            "fields" => [
+                [
+                    "key"   => "cmd.controller",
+                    "type"  => "string",
+                    "value" => $controller,
+                ],
+                [
+                    "key"   => "cmd.action",
+                    "type"  => "string",
+                    "value" => $action,
                 ],
             ],
         ];
@@ -172,9 +168,35 @@ class Span
         return $this->_refSpanID;
     }
 
-    public function log($event)
+    public function getTrace()
     {
-        #TODO
+        return sprintf("%s:%s:%s:1", $this->traceID(), $this->spanID(), $this->_refSpanID);
+    }
+
+    public function getLog($fields = [])
+    {
+        $now = microtime();
+        list($a, $b) = explode(' ', microtime());
+        $millisecond = intval($b) * 1000 + intval($a * 1000);
+        $microsecond = intval($b) * 1000000 + intval($a * 1000000);
+
+        $info = $this->info;
+        $info['duration'] = $microsecond - $info['startTimeMillis'];
+        $info['logs']['timestamp'] = $millisecond;
+        foreach ($fields as $field) {
+            list($key, $type, $value) = $field;
+            $info['logs']['fields'][] = [
+                "key"   => $key,
+                "type"  => $type,
+                "value" => $value,
+            ];
+        }
+        return $info;
+    }
+
+    public function getLogJson($fields = [])
+    {
+        return json_encode($this->getLog($fields, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
     }
 
     public function addTag($key, $type, $value)
@@ -186,32 +208,8 @@ class Span
         ];
     }
 
-    public function addLogFields($key, $type, $value)
-    {
-        $this->info['logs']['fields'][] = [
-            "key"   => $key,
-            "type"  => $type,
-            "value" => $value,
-        ];
-    }
-
-    public function finish()
-    {
-        $now = microtime();
-        list($a, $b) = explode(' ', microtime());
-        $millisecond = intval($b) * 1000 + intval($a * 1000);
-        $microsecond = intval($b) * 1000000 + intval($a * 1000000);
-
-        $this->info['duration'] = $microsecond - $this->info['startTimeMillis'];
-
-        #TODO: log
-        var_export($this->info);
-        echo "\n";
-    }
-
     public function subSpan()
     {
         return new Span($this->info['traceID'], $this->info['spanID']);
     }
 }
-
