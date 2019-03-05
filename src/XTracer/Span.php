@@ -92,7 +92,7 @@ class Span
         }
 
         $this->addTag('http.method', 'string', $method);
-        $this->addTag('http.url', 'string', $url);
+        $this->addTag('http.url', 'string', $safeUrl);
 
         $this->info['logs'] = [
             "timestamp" => $this->info['startTimeMillis'],
@@ -105,7 +105,7 @@ class Span
                 [
                     "key"   => "http.url",
                     "type"  => "string",
-                    "value" => $url,
+                    "value" => $safeUrl,
                 ],
             ],
         ];

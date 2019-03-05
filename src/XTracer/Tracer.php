@@ -20,6 +20,14 @@ class Tracer extends Component
     public $maskRules = [];
     public $maskMethod = null;
 
+    public static function getSpan()
+    {
+        if (is_null(self::$span)) {
+            self::$span = new Span(null, null, 'ERROR');
+        }
+        return self::$span;
+    }
+
     public static function beforeAction($event)
     {
         if (Yii::$app instanceof yii\console\Application) {

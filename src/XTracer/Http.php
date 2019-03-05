@@ -131,6 +131,7 @@ class Http
         }
 
         $span->addTag('http.status_code', 'int64', $result['code']);
+        $span->addTag('http.message', 'string', $result['message']);
 
         Yii::info($span->getLogJson([['stage', 'string', __METHOD__]]), Tracer::CATEGORY);
 

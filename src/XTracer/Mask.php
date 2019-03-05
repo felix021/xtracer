@@ -40,7 +40,7 @@ class Mask
                 unset($data[$key]);
                 continue;
             }
-            $args[] = $data[$key];
+            array_unshift($args, $data[$key]);
             if (is_callable($method)) {
                 $data[$key] = call_user_func_array($method, $args);
                 continue;
@@ -56,7 +56,7 @@ class Mask
         return $data;
     }
 
-    public static function maskAll($len, $val)
+    public static function maskAll($val, $len = 8)
     {
         return str_pad('', $len, '*');
     }
@@ -66,7 +66,7 @@ class Mask
         return str_pad('', $n, $char);
     }
 
-    public static function maskPrefix($len, $val)
+    public static function maskPrefix($val, $len)
     {
         $valLen = mb_strlen($val, 'utf-8');
         if ($len >= 0) {
@@ -78,7 +78,7 @@ class Mask
         }
     }
 
-    public static function maskSuffix($len, $val)
+    public static function maskSuffix($val, $len)
     {
         $valLen = mb_strlen($val, 'utf-8');
         if ($len >= 0) {
@@ -90,7 +90,7 @@ class Mask
         }
     }
 
-    public static function maskPrefixSuffix($prefixLen, $suffixLen, $val)
+    public static function maskPrefixSuffix($val, $prefixLen, $suffixLen)
     {
         $valLen = mb_strlen($val, 'utf-8');
         if ($prefixLen >= 0 and $suffixLen >= 0) {

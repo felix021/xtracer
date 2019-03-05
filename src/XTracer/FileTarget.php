@@ -46,6 +46,6 @@ class FileTarget extends \yii\log\FileTarget
             ['message', 'string', $text],
         ];
 
-        return Tracer::$span->getLogJson($fields);
+        return Tracer::getSpan()->getLogJson($fields);
     }
 }
