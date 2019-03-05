@@ -5,14 +5,33 @@ namespace XTracer;
 use Yii;
 use yii\web\Controller;
 use yii\web\Response;
+use yii\base\Component;
 
 use XTracer\Span;
 
-class Tracer
+class Tracer extends Component
 {
-    static $request = [];
+    protected static $span = null;
 
-    public static function beforeRequest($event)
+    public static function beforeAction($event)
+    {
+        if (Yii::$app instanceof yii\console\Application) {
+            self::beforeConsoleAction($event);
+        } else {
+            self::beforeWebAction($event);
+        }
+    }
+
+    public static function afterAction($event)
+    {
+        if (Yii::$app instanceof yii\console\Application) {
+            self::afterConsoleAction($event);
+        } else {
+            self::afterWebAction($event);
+        }
+    }
+
+    public static function beforeWebAction($event)
     {
         $trace = Yii::$app->request->headers->get('uber-trace-id', '');
         $fields = explode(":", $trace);
@@ -29,17 +48,34 @@ class Tracer
         $span = new Span($traceID, $spanID);
         $span->httpSpan($method, $url);
 
-        Yii::$app->request->attachBehavior('span', $span);
+        self::$span = $span;
     }
 
-    public static function afterRequest($event)
+    public static function afterWebAction($event)
     {
-        Yii::$app->request->finishSpan();
+        $code = Yii::$app->response->statusCode;
+        self::$span->addTag('http.status_code', 'int64', $code);
+        self::$span->finish();
+    }
+
+    public static function beforeConsoleAction($event)
+    {
+        $action = $event->action;
+        $controller = $action->controller;
+        $span = new Span(null, null);
+        $span->cmdSpan($action->id, $controller->id, Yii::$app->request->params);
+        self::$span = $span;
+    }
+
+    public static function afterConsoleAction($event)
+    {
+        self::$span->addTag('cmd.result', 'string', json_encode($event->result));
+        self::$span->finish();
     }
 
     public static function curl($url, $method = 'GET', $data = null, $options = [])
     {
-        $span = Yii::$app->request->subSpan();
+        $span = self::$span->subSpan();
 
         $trace = sprintf("%s:%s:%s:1", $span->traceID, $span->spanID, $span->refSpanID);
 

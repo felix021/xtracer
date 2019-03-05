@@ -5,14 +5,15 @@ namespace XTracer;
 use Yii;
 use yii\web\Controller;
 use yii\web\Response;
-use yii\base\Behavior;
 
 use XTracer\Util;
 
-class Span extends Behavior
+class Span
 {
     protected $info = [];
     protected $_refSpanID = null;
+
+    protected $type = null;
 
     public function __construct($traceID, $refSpanID, $name = null)
     {
@@ -76,6 +77,8 @@ class Span extends Behavior
 
     public function httpSpan($method, $url, $isCaller = false)
     {
+        $this->type = 'http';
+
         $baseUrl = preg_replace('/\?.*$/', '', $url);
 
         if (is_null($this->info['operationName'])) {
@@ -86,17 +89,8 @@ class Span extends Behavior
             }
         }
 
-        $this->info['tags'] = [
-            [
-                "key"   => "http.method",
-                "type"  => "string",
-                "value" => $method,
-            ], [
-                "key"   => "http.url",
-                "type"  => "string",
-                "value" => $url,
-            ],
-        ];
+        $this->addTag('http.method', 'string', $method);
+        $this->addTag('http.url', 'string', $url);
 
         $this->info['logs'] = [
             [
@@ -117,11 +111,44 @@ class Span extends Behavior
         ];
     }
 
+    public function cmdSpan($action, $controller, $params)
+    {
+        $this->type = 'cmd';
+
+        $this->info['operationName'] = sprintf('CMD %s %s', $controller, $action);
+
+        $this->addTag('cmd.controller', 'string', $controller);
+        $this->addTag('cmd.action', 'string', $action);
+        $this->addTag('cmd.params', 'string', json_encode($params));
+
+        $this->info['logs'] = [
+            [
+                "timestamp" => $this->info['startTimeMillis'],
+                "fields" => [
+                    [
+                        "key"   => "cmd.controller",
+                        "type"  => "string",
+                        "value" => $controller,
+                    ],
+                    [
+                        "key"   => "cmd.action",
+                        "type"  => "string",
+                        "value" => $action,
+                    ],
+                ],
+            ],
+        ];
+    }
+
+
     public function rpcSpan($api)
     {
+        $this->type = 'rpc';
+
         if (is_null($this->info['operationName'])) {
             $this->info['operationName'] = 'RPC ' . $api;
         }
+
         #TODO
     }
 
@@ -145,12 +172,30 @@ class Span extends Behavior
         return $this->_refSpanID;
     }
 
-    public function logSpan($event)
+    public function log($event)
     {
         #TODO
     }
 
-    public function finishSpan()
+    public function addTag($key, $type, $value)
+    {
+        $this->info['tags'][] = [
+            "key"   => $key,
+            "type"  => $type,
+            "value" => $value,
+        ];
+    }
+
+    public function addLogFields($key, $type, $value)
+    {
+        $this->info['logs']['fields'][] = [
+            "key"   => $key,
+            "type"  => $type,
+            "value" => $value,
+        ];
+    }
+
+    public function finish()
     {
         $now = microtime();
         list($a, $b) = explode(' ', microtime());
@@ -158,12 +203,6 @@ class Span extends Behavior
         $microsecond = intval($b) * 1000000 + intval($a * 1000000);
 
         $this->info['duration'] = $microsecond - $this->info['startTimeMillis'];
-
-        $this->info['tags'][] = [
-            "key"   => "http.status_code",
-            "type"  => "int64",
-            "value" => Yii::$app->response->statusCode
-        ];
 
         #TODO: log
         var_export($this->info);
@@ -174,6 +213,5 @@ class Span extends Behavior
     {
         return new Span($this->info['traceID'], $this->info['spanID']);
     }
-
 }
 
