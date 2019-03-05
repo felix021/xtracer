@@ -10,6 +10,8 @@ use XTracer\Util;
 
 class Span
 {
+    const IS_CALLER = true;
+
     protected $info = [];
     protected $_refSpanID = null;
 
@@ -77,8 +79,8 @@ class Span
 
     public function httpSpan($method, $url, $isCaller = false)
     {
-        $url = Util::safeUrl($url);
-        $fields = parse_url($url);
+        $safeUrl = Util::safeUrl($url);
+        $fields = parse_url($safeUrl);
         $path = $fields['path'];
 
         if (is_null($this->info['operationName'])) {
@@ -170,10 +172,10 @@ class Span
 
     public function getTrace()
     {
-        return sprintf("%s:%s:%s:1", $this->traceID(), $this->spanID(), $this->_refSpanID);
+        return sprintf("%s:%s:%s:1", $this->getTraceID(), $this->getSpanID(), $this->_refSpanID);
     }
 
-    public function getLog($fields = [])
+    public function getLog($fields = [], $tags = [])
     {
         $now = microtime();
         list($a, $b) = explode(' ', microtime());
@@ -191,12 +193,22 @@ class Span
                 "value" => $value,
             ];
         }
+
+        foreach ($tags as $tag) {
+            list($key, $type, $value) = $tag;
+            $info['tags'] = [
+                "key"   => $key,
+                "type"  => $type,
+                "value" => $value,
+            ];
+        }
+
         return $info;
     }
 
-    public function getLogJson($fields = [])
+    public function getLogJson($fields = [], $tags = [])
     {
-        return json_encode($this->getLog($fields, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        return json_encode($this->getLog($fields, $tags, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
     }
 
     public function addTag($key, $type, $value)

@@ -17,6 +17,10 @@ class FileTarget extends \yii\log\FileTarget
     public function formatMessage($message)
     {
         list($text, $level, $category, $timestamp) = $message;
+        if ($category == Tracer::CATEGORY) {
+            return $text;
+        }
+
         $level = Logger::getLevelName($level);
         if (!is_string($text)) {
             // exceptions may not be serializable if in the call stack somewhere is a Closure
