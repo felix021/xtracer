@@ -45,8 +45,8 @@ class Span
             'flags'         => 1, #不抽样
             'operationName' => $name,
             'references'    => [],
-            'startTime'     => $millisecond,
-            'startTimeMillis'   => $microsecond,
+            'startTime'     => $microsecond,
+            'startTimeMillis'   => $millisecond,
             'duration'      => -1,
             'tags'          => [],
             "logs"          => [],
@@ -183,8 +183,8 @@ class Span
         $microsecond = intval($b) * 1000000 + intval($a * 1000000);
 
         $info = $this->info;
-        $info['duration'] = $microsecond - $info['startTimeMillis'];
-        $info['logs']['timestamp'] = $millisecond;
+        $info['duration'] = $microsecond - $info['startTime'];
+        $info['logs']['timestamp'] = $microsecond;
         foreach ($fields as $field) {
             list($key, $type, $value) = $field;
             $info['logs']['fields'][] = [
