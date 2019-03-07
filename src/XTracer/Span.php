@@ -83,12 +83,13 @@ class Span
         $fields = parse_url($safeUrl);
         $path = $fields['path'];
 
-        if (is_null($this->info['operationName'])) {
+        if (is_null($this->getName())) {
             if ($isCaller) {
-                $this->info['operationName'] = 'HTTP ' . $method . ': ' . $path;
+                $name = 'HTTP ' . $method . ': ' . $path;
             } else { #receiver
-                $this->info['operationName'] = 'HTTP ' . $method . ' ' . $path;
+                $name = 'HTTP ' . $method . ' ' . $path;
             }
+            $this->setName($name);
         }
 
         $this->addTag('http.method', 'string', $method);
@@ -170,11 +171,6 @@ class Span
         return $this->_refSpanID;
     }
 
-    public function getTrace()
-    {
-        return sprintf("%s:%s:%s:1", $this->getTraceID(), $this->getSpanID(), $this->_refSpanID);
-    }
-
     public function getLog($fields = [], $tags = [])
     {
         $now = microtime();
@@ -223,5 +219,16 @@ class Span
     public function subSpan()
     {
         return new Span($this->info['traceID'], $this->info['spanID']);
+    }
+
+    public function getName()
+    {
+        return $this->info['operationName'];
+    }
+
+    public function setName($name)
+    {
+        $this->info['operationName'] = $name;
+        return $this;
     }
 }

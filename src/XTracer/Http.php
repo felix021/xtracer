@@ -21,7 +21,7 @@ class Http
     public function __construct($span = null)
     {
         if (is_null($span)) {
-            $span = Tracer::$span;
+            $this->span = Tracer::$span;
         }
         $this->ch = curl_init();
     }
@@ -55,13 +55,13 @@ class Http
     {
         $ch = $this->ch;
 
-        $span = Tracer::$span->subSpan();
-        $span->httpSpan($method, $url, Span::IS_CALLER);
+        $outbound = new \XTracer\Outbound($this->span);
+        $outbound->beginHttp($method, $url, Span::IS_CALLER);
 
         if (!is_array($headers)) {
             throw new \Exception("invalid headers");
         }
-        $headers[] = 'uber-trace-id: ' . $span->getTrace();
+        $headers[] = $outbound->getTraceKey() . ': ' . $outbound->getTraceValue();
 
         $default_options = [
             CURLOPT_URL             => $this->fixUrl($method, $url, $data),
@@ -130,10 +130,9 @@ class Http
             #$result['header'] = $header;
         }
 
-        $span->addTag('http.status_code', 'int64', $result['code']);
-        $span->addTag('http.message', 'string', $result['message']);
-
-        Yii::info($span->getLogJson([['stage', 'string', __METHOD__]]), Tracer::CATEGORY);
+        $outbound->addTag('http.status_code', 'int64', $result['code']);
+        $outbound->addTag('http.message', 'string', $result['message']);
+        $outbound->finish();
 
         curl_close($ch);
         return $result;
