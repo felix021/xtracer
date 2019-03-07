@@ -99,20 +99,10 @@ class Span
         $this->addTag('http.method', 'string', $method);
         $this->addTag('http.url', 'string', $safeUrl);
 
-        $this->info['logs'][] = [
-            "timestamp" => $this->info['startTimeMillis'],
-            "fields" => [
-                [
-                    "key"   => "http.method",
-                    "type"  => "string",
-                    "value" => $method,
-                ], [
-                    "key"   => "http.url",
-                    "type"  => "string",
-                    "value" => $safeUrl,
-                ],
-            ],
-        ];
+        $this->addLog([
+            ["http.method", "string", $method],
+            ["http.url", "string", $safeUrl],
+        ], $this->info['startTime']);
     }
 
     public function cmdSpan($action, $controller, $params)
@@ -125,21 +115,10 @@ class Span
         $this->addTag('cmd.action', 'string', $action);
         $this->addTag('cmd.params', 'string', json_encode($params));
 
-        $this->info['logs'][] = [
-            "timestamp" => $this->info['startTimeMillis'],
-            "fields" => [
-                [
-                    "key"   => "cmd.controller",
-                    "type"  => "string",
-                    "value" => $controller,
-                ],
-                [
-                    "key"   => "cmd.action",
-                    "type"  => "string",
-                    "value" => $action,
-                ],
-            ],
-        ];
+        $this->addLog([
+            ['cmd.controller', 'string', $controller],
+            ['cmd.action', 'string', $controller],
+        ], $this->info['startTime']);
     }
 
 
