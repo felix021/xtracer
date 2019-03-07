@@ -168,7 +168,7 @@ class Span
 
         $info['duration'] = $microsecond - $info['startTime'];
 
-        $this->addLog($fields, $millisecond);
+        $this->addLog($fields, $microsecond);
 
         foreach ($tags as $tag) {
             list($key, $type, $value) = $tag;
