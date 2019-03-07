@@ -161,6 +161,11 @@ class Span
         $microsecond = intval($b) * 1000000 + intval($a * 1000000);
 
         $info = $this->info;
+
+        if (is_null($info['operationName'])) {
+            $info['operationName'] = '<UNKNOWN>';
+        }
+
         $info['duration'] = $microsecond - $info['startTime'];
 
         $this->addLog($fields, $millisecond);

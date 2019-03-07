@@ -19,17 +19,13 @@ class Outbound
         } else {
             $this->parent_span = $current_span;
         }
-    }
 
-    public function begin($name)
-    {
         $this->span = $this->parent_span->subSpan();
-        $this->span->setName($name);
+        $this->span->addTag('request.role', 'string', 'Invoker');
     }
 
     public function beginHttp($method, $url, $isCaller = false)
     {
-        $this->span = $this->parent_span->subSpan();
         $this->span->httpSpan($method, $url, $isCaller);
     }
 

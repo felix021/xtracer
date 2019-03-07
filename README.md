@@ -16,9 +16,11 @@ tracer library for yii2, compatible with jaeger.
 
 #### 2.1 `config/web.php`
 
+*NOTE*: you should set an identifiable name for each application.
+
 ```
 $config = [
-    'id' => '<APP NAME>'
+    'name' => '<APP NAME>', # will be saved to log
     ...
     'on beforeAction' => ['XTracer\Tracer','beforeAction'],
     'on afterAction' => ['XTracer\Tracer','afterAction'],
@@ -52,6 +54,7 @@ $config = [
             ],
         ],
         ...
+        # not necessary, but I'll leave it here as a guide
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
@@ -67,7 +70,7 @@ $config = [
 
 ```
 $config = [
-    'id' => '<APP NAME>'
+    'id' => '<APP NAME>' # it should be the same as in `config/web.php`
     ...
     'on beforeAction' => ['XTracer\Tracer','beforeAction'],
     'on afterAction' => ['XTracer\Tracer','afterAction'],
@@ -115,14 +118,32 @@ In addition, when a http request is received, a message containing `$_GET`, `$_P
 
 ### 4. Outbound Request
 
-Use `\XTracer\Http` to send outbound request, which creates a sub span, and sends traceid to downstream service in http header `uber-trace-id`, as is defined in jaeger document.
+Initialize a `\Xtracer\Outbound` before issue an outbound request, which creates a sub span, and call its `finish` method to log the request.
+
+Example:
+
+```
+# Initialize
+$outbound = new \XTracer\Outbound($this->span);
+
+# Pass the trace information to downstream services if they support jaeger's tracing standard
+# $trace = $outbound->getTraceKey() . ': ' . $outbound->getTraceValue();
+
+# Issue the call
+$result = ...;
+
+# logging
+$outbound->addTag('request.status', 'int64', strval($result['code']));
+$outbound->finish();
+```
+
+If it's a http request, `\XTracer\Http` will help you do all the above, including passing the traceid to downstream services in http header `uber-trace-id`, as is defined in jaeger's document.
 
 Example:
 
 ```
 use XTracer\Http;
 
-$response = (new Http())->get("https://www.google.com");
 $response = (new Http())->get("https://www.google.com");
 if ($response['errno'] != 0) {
     throw new Exception("failed: " . $response['message']);
