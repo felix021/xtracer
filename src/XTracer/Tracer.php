@@ -23,7 +23,7 @@ class Tracer extends Component
     public static function getSpan()
     {
         if (is_null(self::$span)) {
-            self::$span = new Span(null, null, 'ERROR');
+            self::beforeAction(null);
         }
         return self::$span;
     }
@@ -85,10 +85,14 @@ class Tracer extends Component
 
     public static function beforeConsoleAction($event)
     {
-        $action = $event->action;
-        $controller = $action->controller;
         $span = new Span(null, null);
-        $span->cmdSpan($action->id, $controller->id, Yii::$app->request->params);
+        if (is_null($event)) {
+            $span->cmdSpan('<UNKNOWN>', '<UNKNOWN>', Yii::$app->request->params);
+        } else {
+            $action = $event->action;
+            $controller = $action->controller;
+            $span->cmdSpan($action->id, $controller->id, Yii::$app->request->params);
+        }
         self::$span = $span;
     }
 
@@ -96,6 +100,18 @@ class Tracer extends Component
     {
         self::$span->addTag('cmd.result', 'string', json_encode($event->result));
         Yii::info(self::$span->getLogJson([['stage', 'string', 'afterConsoleAction']]), self::CATEGORY);
+    }
+
+    public static function afterException($exception)
+    {
+        self::$span->addTag('result.type', 'string', 'exception');
+        $fields = [
+            ['stage', 'string', __METHOD__],
+            ['error.object', 'string', get_class($exception)],
+            ['error.message', 'string', $exception->getMessage()],
+            ['error.stack', 'string', $exception->getTraceAsString()],
+        ];
+        Yii::info(self::$span->getLogJson($fields), self::CATEGORY);
     }
 
     public static function test()

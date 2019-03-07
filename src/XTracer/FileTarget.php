@@ -17,6 +17,7 @@ class FileTarget extends \yii\log\FileTarget
     public function formatMessage($message)
     {
         list($text, $level, $category, $timestamp) = $message;
+
         if ($category == Tracer::CATEGORY) {
             return $text;
         }
@@ -39,7 +40,6 @@ class FileTarget extends \yii\log\FileTarget
         }
 
         $fields = [
-            ['datetime', 'string', (new \DateTime())->format('Y-m-d H:i:s.u')],
             ['stack', 'string', (empty($traces) ? '' : implode("\n", $traces))],
             ['level', 'string', $level],
             ['category', 'string', $category],

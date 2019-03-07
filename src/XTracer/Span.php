@@ -49,10 +49,8 @@ class Span
         $microsecond = intval($b) * 1000000 + intval($a * 1000000);
 
         $this->info = [
-            'type'          => 'span',
             'traceID'       => $traceID,
             'spanID'        => $spanID,
-            'flags'         => 1, #不抽样
             'operationName' => $name,
             'references'    => $ref,
             'startTime'     => $microsecond,
@@ -168,7 +166,7 @@ class Span
 
         $info['duration'] = $microsecond - $info['startTime'];
 
-        $this->addLog($fields, $microsecond);
+        $info['logs'][] = $this->buildLog($fields, $microsecond);
 
         foreach ($tags as $tag) {
             list($key, $type, $value) = $tag;
@@ -200,6 +198,11 @@ class Span
 
     public function addLog($fields, $timestamp = null)
     {
+        $this->info['logs'][] = $this->buildLog($fields, $timestamp);
+    }
+
+    public function buildLog($fields, $timestamp = null)
+    {
         if (is_null($timestamp)) {
             $now = microtime();
             list($a, $b) = explode(' ', microtime());
@@ -214,7 +217,8 @@ class Span
                 "value" => $value,
             ];
         }
-        $this->info['logs'][] = $log;
+
+        return $log;
     }
 
     public function subSpan()
