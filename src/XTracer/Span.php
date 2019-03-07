@@ -179,6 +179,8 @@ class Span
             ];
         }
 
+        $info['logTime'] = date('Y-m-d H:i:s.', $b) . intval($a * 1000);
+
         return $info;
     }
 
