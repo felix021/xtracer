@@ -130,7 +130,7 @@ class Http
             #$result['header'] = $header;
         }
 
-        $outbound->addTag('http.status_code', 'int64', $result['code']);
+        $outbound->addTag('http.status_code', 'int64', strval($result['code']));
         $outbound->addTag('http.message', 'string', $result['message']);
         $outbound->finish();
 

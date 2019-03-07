@@ -13,13 +13,23 @@ class Span
     const IS_CALLER = true;
 
     protected $info = [];
-    protected $_refSpanID = null;
 
     protected $type = null;
 
     public function __construct($traceID, $refSpanID, $name = null)
     {
-        $this->_refSpanID = $refSpanID;
+        if (is_null($traceID)) {
+            $traceID = Util::generateID();
+            $spanID = $traceID;
+            $ref = [];
+        } else {
+            $spanID = Util::generateID();
+            $ref = [
+                "refType"   => "CHILD_OF",
+                "traceID"   => $traceID,
+                "spanID"    => $refSpanID,
+            ];
+        }
 
         $server_ip = isset($_SERVER['SERVER_ADDR']) ? $_SERVER['SERVER_ADDR'] : null;
         if (is_null($server_ip)) {
@@ -41,10 +51,10 @@ class Span
         $this->info = [
             'type'          => 'span',
             'traceID'       => $traceID,
-            'spanID'        => Util::generateID(),
+            'spanID'        => $spanID,
             'flags'         => 1, #不抽样
             'operationName' => $name,
-            'references'    => [],
+            'references'    => $ref,
             'startTime'     => $microsecond,
             'startTimeMillis'   => $millisecond,
             'duration'      => -1,
@@ -54,6 +64,10 @@ class Span
                 "serviceName" => Yii::$app->name,
                 "tags" => [
                     [
+                        "key"   => "jaeger.version",
+                        "type"  => "string",
+                        "value" => "php-xtracer",
+                    ], [
                         "key"   => "hostname",
                         "type"  => "string",
                         "value" => gethostname(),
@@ -65,16 +79,6 @@ class Span
                 ]
             ]
         ];
-
-        if (is_null($traceID)) {
-            $this->info['traceID'] = Util::generateID();
-        } else {
-            $this->info['references'] = [
-                "refType"   => "CHILD_OF",
-                "traceID"   => $traceID,
-                "spanID"    => $refSpanID,
-            ];
-        }
     }
 
     public function httpSpan($method, $url, $isCaller = false)
@@ -95,15 +99,14 @@ class Span
         $this->addTag('http.method', 'string', $method);
         $this->addTag('http.url', 'string', $safeUrl);
 
-        $this->info['logs'] = [
+        $this->info['logs'][] = [
             "timestamp" => $this->info['startTimeMillis'],
             "fields" => [
                 [
                     "key"   => "http.method",
                     "type"  => "string",
                     "value" => $method,
-                ],
-                [
+                ], [
                     "key"   => "http.url",
                     "type"  => "string",
                     "value" => $safeUrl,
@@ -122,7 +125,7 @@ class Span
         $this->addTag('cmd.action', 'string', $action);
         $this->addTag('cmd.params', 'string', json_encode($params));
 
-        $this->info['logs'] = [
+        $this->info['logs'][] = [
             "timestamp" => $this->info['startTimeMillis'],
             "fields" => [
                 [
@@ -180,15 +183,8 @@ class Span
 
         $info = $this->info;
         $info['duration'] = $microsecond - $info['startTime'];
-        $info['logs']['timestamp'] = $microsecond;
-        foreach ($fields as $field) {
-            list($key, $type, $value) = $field;
-            $info['logs']['fields'][] = [
-                "key"   => $key,
-                "type"  => $type,
-                "value" => $value,
-            ];
-        }
+
+        $this->addLog($fields, $millisecond);
 
         foreach ($tags as $tag) {
             list($key, $type, $value) = $tag;
@@ -214,6 +210,25 @@ class Span
             "type"  => $type,
             "value" => $value,
         ];
+    }
+
+    public function addLog($fields, $timestamp = null)
+    {
+        if (is_null($timestamp)) {
+            $now = microtime();
+            list($a, $b) = explode(' ', microtime());
+            $timestamp = intval($b) * 1000000 + intval($a * 1000000); #microsecond
+        }
+        $log['timestamp'] = $timestamp;
+        foreach ($fields as $field) {
+            list($key, $type, $value) = $field;
+            $log['fields'][] = [
+                "key"   => $key,
+                "type"  => $type,
+                "value" => $value,
+            ];
+        }
+        $this->info['logs'][] = $log;
     }
 
     public function subSpan()

@@ -79,7 +79,7 @@ class Tracer extends Component
     public static function afterWebAction($event)
     {
         $code = Yii::$app->response->statusCode;
-        self::$span->addTag('http.status_code', 'int64', $code);
+        self::$span->addTag('http.status_code', 'int64', strval($code));
         Yii::info(self::$span->getLogJson([['stage', 'string', 'afterWebAction']]), self::CATEGORY);
     }
 
