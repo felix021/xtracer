@@ -24,11 +24,11 @@ class Span
             $ref = [];
         } else {
             $spanID = Util::generateID();
-            $ref = [
+            $ref = [[
                 "refType"   => "CHILD_OF",
                 "traceID"   => $traceID,
                 "spanID"    => $refSpanID,
-            ];
+            ]];
         }
 
         $server_ip = isset($_SERVER['SERVER_ADDR']) ? $_SERVER['SERVER_ADDR'] : null;
